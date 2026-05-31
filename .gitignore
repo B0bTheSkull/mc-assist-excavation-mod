@@ -1,0 +1,19 @@
+# Gradle / build output
+.gradle/
+build/
+
+# Local dependency jars (not redistributed — see README "Building")
+libs/*.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.classpath
+*.project
+.settings/
+
+# Loom run dir
+run/

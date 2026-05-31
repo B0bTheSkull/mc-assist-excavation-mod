@@ -1,0 +1,54 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+    // Mod Menu ships as a local jar (compile-only — never bundled).
+    flatDir { dirs 'libs' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    // Each fabric-api module is declared individually with `fabricApi.module()`.
+    // The umbrella `fabric-api` artifact is a BOM and doesn't expose submodule classes on its own.
+    implementation include(fabricApi.module("fabric-api-base", project.fabric_version))
+    implementation include(fabricApi.module("fabric-lifecycle-events-v1", project.fabric_version))
+    implementation include(fabricApi.module("fabric-key-mapping-api-v1", project.fabric_version))
+
+    // Mod Menu: compile-time only. Gives type checking for the ModMenuApi entrypoint
+    // without bundling Mod Menu into our jar — the user installs it separately.
+    // Soft dependency: the mod loads and runs fine without it.
+    compileOnly fileTree(dir: 'libs', include: ['modmenu-*.jar'])
+}
+
+processResources {
+    def v = project.version
+    inputs.property "version", v
+    filesMatching("fabric.mod.json") {
+        expand "version": v
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+    options.encoding = 'UTF-8'
+}
+
+java {
+    // Compile/run with JDK 25 even when Gradle itself launches on an older JVM
+    // (the system default here is 21). Gradle auto-provisions a matching JDK.
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    withSourcesJar()
+}

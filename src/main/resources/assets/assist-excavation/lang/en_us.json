@@ -1,0 +1,23 @@
+{
+  "key.assist-excavation.category": "Assist Excavation",
+  "key.assist-excavation.open_config": "§lAssist Excavation Config",
+  "key.assist-excavation.toggle": "Toggle Assist Excavation",
+  "key.assist-excavation.bridge": "Toggle Auto Bridge",
+  "message.assist-excavation.disabled": "§aDisabled",
+  "message.assist-excavation.enabled": "§cEnabled",
+  "message.assist-excavation.toggle": "§6Assist Excavation %s",
+  "message.assist-excavation.bridge.toggle": "§bAuto Bridge %s",
+  "screen.assist-excavation.config.delayTicks": "Delay Ticks: %d",
+  "screen.assist-excavation.config.excavationMode": "Excavation Mode: %s",
+  "screen.assist-excavation.config.excavationMode.0": "Rectangle",
+  "screen.assist-excavation.config.excavationMode.1": "Circle",
+  "screen.assist-excavation.config.excavationMode.2": "Not Implemented",
+  "screen.assist-excavation.config.reach": "Reach: %d",
+  "screen.assist-excavation.config.autoTool": "Auto Tool Switch: %s",
+  "screen.assist-excavation.config.fastBreak": "Fast Instant-Break: %s",
+  "screen.assist-excavation.config.autoBridge": "Auto Bridge (K): %s",
+  "screen.assist-excavation.config.reset": "Reset to Default",
+  "screen.assist-excavation.config.title": "Assist Excavation Configuration",
+  "screen.assist-excavation.config.real_reach": "Game Rule's Real Reach %f",
+  "modmenu.descriptionTranslation.assist-excavation": "A client-side utility mod that helps players efficiently mine adjacent blocks. This mod automatically targets nearby blocks when mining, making it easier to excavate large areas. It respects server rules and does not provide unfair advantages in multiplayer games. However, there is still a possibility that the server may identify it as cheating."
+}
