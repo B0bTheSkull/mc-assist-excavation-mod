@@ -11,19 +11,42 @@ Client-side only.
 **Assist mining** — toggle a BFS auto-miner that breaks blocks around you within a
 configurable reach. Original behaviour from upstream, ported intact.
 
-Added in this fork:
+**Excavation modes** — pick the shape the auto-miner targets:
+
+- **Rectangle** — Chebyshev box at/above foot level (the original behaviour).
+- **Sphere** — Euclidean radius around your eyes.
+- **Tunnel** — a shaft in your look direction for branch mining; switch between a
+  1×2 and a 3×3 cross-section.
+- **Vein** — only breaks blocks matching the one under your crosshair (classic
+  veinminer), spreading through diagonally-touching neighbours.
+
+All modes still respect the server's real interaction range, so nothing is mined
+beyond where you could legitimately reach.
+
+Other features (all toggleable unless noted):
 
 - **No inter-block gap** — when a block finishes, the next one starts the same tick
   (instead of idling a tick). Always on.
 - **Fast instant-break** — clears every instant-breakable block in range each tick
-  (grass, dirt, sand, …), capped at 16/tick. Toggleable.
+  (grass, dirt, sand, …), capped at 16/tick.
 - **Auto tool switch** — switches to the fastest hotbar tool for the target block
-  before breaking it (and syncs the slot to the server). Toggleable.
-  Note: ranks by break speed only, so it can switch away from a Silk Touch / Fortune
-  tool — turn it off if you care about enchanted drops.
+  before breaking it (and syncs the slot to the server).
+- **Tool-safety guard** — a durability threshold that stops the miner from starting
+  blocks with a near-broken tool, plus a *Protect Silk/Fortune* option that never
+  auto-switches away from a Silk Touch or Fortune tool.
+- **Block protection** — never breaks containers, spawners, and other block-entities
+  (toggleable), plus a user block-id blacklist (e.g. `minecraft:bedrock`) edited in
+  the config file.
+- **Mining preview overlay** — draws a green outline around every block the active
+  mode would break, so you can see the target region before it goes.
+- **Server-safe mode** — one switch that disables the detectable techniques: it caps
+  instant-breaks to one per tick and stops the auto-bridge from sending silent-rotation
+  packets (it will only place when you are already looking near the spot).
 - **Auto-bridge (scaffold)** — places a block under your feet as you move so you can
   sprint across gaps without falling. Auto-picks a solid block from your hotbar and
-  switches back. Toggleable. **See the warning below.**
+  switches back. **See the warning below.**
+
+Settings persist across restarts (saved to `config/assist-excavation.json`).
 
 ## Keybinds (defaults)
 

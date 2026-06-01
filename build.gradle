@@ -24,6 +24,8 @@ dependencies {
     implementation include(fabricApi.module("fabric-api-base", project.fabric_version))
     implementation include(fabricApi.module("fabric-lifecycle-events-v1", project.fabric_version))
     implementation include(fabricApi.module("fabric-key-mapping-api-v1", project.fabric_version))
+    // World-render events for the mining preview overlay.
+    implementation include(fabricApi.module("fabric-rendering-v1", project.fabric_version))
 
     // Mod Menu: compile-time only. Gives type checking for the ModMenuApi entrypoint
     // without bundling Mod Menu into our jar — the user installs it separately.

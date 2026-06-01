@@ -7,11 +7,21 @@ import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import com.b0btheskull.assistExcavation.client.Common;
 import com.b0btheskull.assistExcavation.client.config.HotKey.AssistExcavationKeyBindings;
 
@@ -26,11 +36,20 @@ public class ExcavationHandler {
     private static final int MINE_PROGRESS = 1;
     private static final int MINE_INSTANT = 2;
 
+    // Excavation modes.
+    private static final int MODE_RECT = 0;
+    private static final int MODE_SPHERE = 1;
+    private static final int MODE_TUNNEL = 2;
+    private static final int MODE_VEIN = 3;
+
     // Max instant breaks per tick. Instant blocks (grass, dirt, sand, ...) go through
     // startDestroyBlock, which sets no destroyDelay in survival, so several can be broken
     // in one tick. The cap keeps us from flooding the server with break packets at once
     // (strict anti-cheat may flag that).
     private static final int MAX_INSTANT_PER_TICK = 16;
+
+    // Upper bound on how many block outlines the preview overlay will gather per frame.
+    private static final int PREVIEW_CAP = 512;
 
     // The block currently being mined, and the inter-block delay counter.
     private static BlockPos currentMiningPos = null;
@@ -40,7 +59,7 @@ public class ExcavationHandler {
     // turned off. -1 means there is nothing to restore.
     private static int originalSlot = -1;
 
-    // BFS neighbour directions
+    // BFS neighbour directions (rect/sphere/tunnel). No DOWN: we never dig below foot level.
     private static final Direction[] DIRECTIONS = {
             Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST
     };
@@ -62,7 +81,7 @@ public class ExcavationHandler {
         // Read config.
         int delayTicks = Common.getDelayTicks();
         int reach = Common.getReach();
-        int mode = Common.getExcavationMode(); // 0=rect, 1=sphere
+        int mode = Common.getExcavationMode();
 
         // Continue the block we're already mining.
         if (currentMiningPos != null) {
@@ -97,8 +116,12 @@ public class ExcavationHandler {
             return;
         }
 
-        // Start a fresh BFS round.
-        performBfsMining(player, im, reach, mode);
+        // Start a fresh round.
+        if (mode == MODE_VEIN) {
+            performVeinMining(player, im, reach);
+        } else {
+            performBfsMining(player, im, reach, mode);
+        }
     }
 
     private static void performBfsMining(LocalPlayer player,
@@ -108,7 +131,7 @@ public class ExcavationHandler {
 
         // Local BFS structures
         Set<BlockPos> visited = new HashSet<>();
-        Queue<BlockPos> queue = new ArrayDeque<>(); // ArrayDeque instead of LinkedList
+        Queue<BlockPos> queue = new ArrayDeque<>();
 
         // Seed: the five neighbour directions.
         for (Direction d : DIRECTIONS) {
@@ -119,26 +142,21 @@ public class ExcavationHandler {
             }
         }
 
-        // Per-tick instant-break cap: with "fast instant-break" on, clear several (optimization #2);
-        // off, fall back to one per tick.
-        int instantCap = Common.isFastInstantBreak() ? MAX_INSTANT_PER_TICK : 1;
+        // Per-tick instant-break cap. Server-safe mode forces one-per-tick to avoid packet
+        // bursts; otherwise "fast instant-break" clears several, off falls back to one.
+        int instantCap = instantCap();
 
         // BFS: nearest first.
         int instantBroken = 0;
         while (!queue.isEmpty()) {
             BlockPos pos = queue.poll();
 
-            // Try to mine it.
-            int result = tryMine(pos, player, im);
+            int result = tryMine(pos, player, im, null);
             if (result == MINE_PROGRESS) {
-                // A hard block that takes multiple ticks: start it, stop for this tick;
-                // handleExcavation() keeps advancing its progress on later ticks.
                 player.swing(InteractionHand.MAIN_HAND);
                 return;
             }
             if (result == MINE_INSTANT) {
-                // Instant break: keep clearing more instant blocks this tick (optimization #2)
-                // up to the cap.
                 instantBroken++;
                 if (instantBroken >= instantCap) {
                     player.swing(InteractionHand.MAIN_HAND);
@@ -151,33 +169,207 @@ public class ExcavationHandler {
                 BlockPos next = pos.relative(d);
                 if (visited.contains(next)) continue;
                 if (!isWithinReach(next, player, reach, mode)) continue;
-                if (!isWithinServerReach(next, player)) continue; // server-reach check
+                if (!isWithinServerReach(next, player)) continue;
                 visited.add(next);
                 queue.add(next);
             }
         }
 
-        // If we broke at least one instant block this tick, swing once
-        // (rather than sending a swing packet per block).
         if (instantBroken > 0) {
             player.swing(InteractionHand.MAIN_HAND);
         }
     }
 
     /**
+     * Vein mode: seed from the block under the crosshair and only break blocks of the same type,
+     * spreading through the full 26-neighbour adjacency (so diagonally-touching ore is included).
+     * Still bounded by reach and the server's interaction range, keeping it legitimate.
+     */
+    private static void performVeinMining(LocalPlayer player,
+                                          MultiPlayerGameMode im,
+                                          int reach) {
+        HitResult hit = client.hitResult;
+        if (!(hit instanceof BlockHitResult bhr) || hit.getType() != HitResult.Type.BLOCK) {
+            return;
+        }
+        BlockPos seed = bhr.getBlockPos();
+        BlockState seedState = Objects.requireNonNull(client.level).getBlockState(seed);
+        if (seedState.isAir()) {
+            return;
+        }
+        Block target = seedState.getBlock();
+
+        Set<BlockPos> visited = new HashSet<>();
+        Queue<BlockPos> queue = new ArrayDeque<>();
+        visited.add(seed);
+        queue.add(seed);
+
+        int instantCap = instantCap();
+        int instantBroken = 0;
+
+        while (!queue.isEmpty()) {
+            BlockPos pos = queue.poll();
+
+            if (isWithinSphere(pos, player, reach) && isWithinServerReach(pos, player)) {
+                int result = tryMine(pos, player, im, target);
+                if (result == MINE_PROGRESS) {
+                    player.swing(InteractionHand.MAIN_HAND);
+                    return;
+                }
+                if (result == MINE_INSTANT) {
+                    instantBroken++;
+                    if (instantBroken >= instantCap) {
+                        player.swing(InteractionHand.MAIN_HAND);
+                        return;
+                    }
+                }
+            }
+
+            // Expand to all 26 neighbours that are the same block type and still in range.
+            for (BlockPos next : BlockPos.betweenClosed(pos.offset(-1, -1, -1), pos.offset(1, 1, 1))) {
+                BlockPos np = next.immutable();
+                if (np.equals(pos) || visited.contains(np)) continue;
+                if (!isWithinSphere(np, player, reach) || !isWithinServerReach(np, player)) continue;
+                if (!client.level.getBlockState(np).is(target)) continue;
+                visited.add(np);
+                queue.add(np);
+            }
+        }
+
+        if (instantBroken > 0) {
+            player.swing(InteractionHand.MAIN_HAND);
+        }
+    }
+
+    /**
+     * Compute the set of blocks the current mode would target right now, for the preview overlay.
+     * Mirrors the targeting filters (range, server-reach, protection, vein seed) but never mines.
+     * Bounded by {@link #PREVIEW_CAP} so a huge sphere/vein can't tank the frame.
+     */
+    public static List<BlockPos> computePreviewTargets() {
+        List<BlockPos> out = new ArrayList<>();
+        if (!AssistExcavationKeyBindings.isExcavationEnabled()) {
+            return out;
+        }
+        if (client.player == null || client.level == null) {
+            return out;
+        }
+        LocalPlayer player = client.player;
+        int reach = Common.getReach();
+        int mode = Common.getExcavationMode();
+
+        if (mode == MODE_VEIN) {
+            HitResult hit = client.hitResult;
+            if (!(hit instanceof BlockHitResult bhr) || hit.getType() != HitResult.Type.BLOCK) {
+                return out;
+            }
+            BlockPos seed = bhr.getBlockPos();
+            BlockState seedState = client.level.getBlockState(seed);
+            if (seedState.isAir()) {
+                return out;
+            }
+            Block target = seedState.getBlock();
+            Set<BlockPos> visited = new HashSet<>();
+            Queue<BlockPos> queue = new ArrayDeque<>();
+            visited.add(seed);
+            queue.add(seed);
+            while (!queue.isEmpty() && out.size() < PREVIEW_CAP) {
+                BlockPos pos = queue.poll();
+                if (isWithinSphere(pos, player, reach) && isWithinServerReach(pos, player)
+                        && isBreakableCandidate(pos, target)) {
+                    out.add(pos);
+                }
+                for (BlockPos next : BlockPos.betweenClosed(pos.offset(-1, -1, -1), pos.offset(1, 1, 1))) {
+                    BlockPos np = next.immutable();
+                    if (np.equals(pos) || visited.contains(np)) continue;
+                    if (!isWithinSphere(np, player, reach) || !isWithinServerReach(np, player)) continue;
+                    if (!client.level.getBlockState(np).is(target)) continue;
+                    visited.add(np);
+                    queue.add(np);
+                }
+            }
+            return out;
+        }
+
+        // Rect/Sphere/Tunnel: BFS over the in-range region, collecting breakable candidates.
+        BlockPos origin = player.blockPosition();
+        Set<BlockPos> visited = new HashSet<>();
+        Queue<BlockPos> queue = new ArrayDeque<>();
+        for (Direction d : DIRECTIONS) {
+            BlockPos nb = origin.relative(d);
+            if (isWithinReach(nb, player, reach, mode) && isWithinServerReach(nb, player)) {
+                visited.add(nb);
+                queue.add(nb);
+            }
+        }
+        while (!queue.isEmpty() && out.size() < PREVIEW_CAP) {
+            BlockPos pos = queue.poll();
+            if (isBreakableCandidate(pos, null)) {
+                out.add(pos);
+            }
+            for (Direction d : DIRECTIONS) {
+                BlockPos next = pos.relative(d);
+                if (visited.contains(next)) continue;
+                if (!isWithinReach(next, player, reach, mode)) continue;
+                if (!isWithinServerReach(next, player)) continue;
+                visited.add(next);
+                queue.add(next);
+            }
+        }
+        return out;
+    }
+
+    /** Whether a position holds a block this mod would actually break (range checks done by caller). */
+    private static boolean isBreakableCandidate(BlockPos pos, Block requiredBlock) {
+        BlockState state = Objects.requireNonNull(client.level).getBlockState(pos);
+        if (state.isAir() || state.getDestroySpeed(client.level, pos) < 0) {
+            return false;
+        }
+        if (requiredBlock != null && !state.is(requiredBlock)) {
+            return false;
+        }
+        return !isProtectedBlock(state);
+    }
+
+    /** Per-tick instant-break cap, honouring server-safe and fast-instant-break settings. */
+    private static int instantCap() {
+        if (Common.isServerSafe()) {
+            return 1;
+        }
+        return Common.isFastInstantBreak() ? MAX_INSTANT_PER_TICK : 1;
+    }
+
+    /**
      * Core mining attempt. Returns MINE_NONE / MINE_PROGRESS / MINE_INSTANT.
+     * When {@code requiredBlock} is non-null (vein mode), only that block type is mined.
      */
     private static int tryMine(BlockPos pos,
                                LocalPlayer player,
-                               MultiPlayerGameMode im) {
-        // Re-check server reach.
+                               MultiPlayerGameMode im,
+                               Block requiredBlock) {
         if (!isWithinServerReach(pos, player)) {
-            return MINE_NONE; // outside the server-allowed range
+            return MINE_NONE;
         }
 
         BlockState state = Objects.requireNonNull(client.level).getBlockState(pos);
         if (state.isAir() || state.getDestroySpeed(client.level, pos) < 0) {
             return MINE_NONE; // air, or unbreakable (e.g. bedrock, hardness -1)
+        }
+
+        // Vein mode: skip anything that isn't the seeded block.
+        if (requiredBlock != null && !state.is(requiredBlock)) {
+            return MINE_NONE;
+        }
+
+        // Block protection: never break protected blocks (containers/spawners) or blacklisted ids.
+        if (isProtectedBlock(state)) {
+            return MINE_NONE;
+        }
+
+        // Tool-safety guard: if the held tool is at/below the durability threshold, don't start a
+        // new block with it (protects tools from breaking mid-job).
+        if (isHeldToolExhausted(player)) {
+            return MINE_NONE;
         }
 
         // Optimization #3: switch to the fastest tool for this block before starting the break
@@ -199,11 +391,43 @@ public class ExcavationHandler {
         return MINE_PROGRESS;
     }
 
+    /** Whether a block must never be auto-mined (block-entity protection or user blacklist). */
+    private static boolean isProtectedBlock(BlockState state) {
+        if (Common.isProtectBlockEntities() && state.hasBlockEntity()) {
+            return true;
+        }
+        Set<String> blacklist = Common.getBlockBlacklist();
+        if (blacklist.isEmpty()) {
+            return false;
+        }
+        String id = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+        return blacklist.contains(id);
+    }
+
+    /** True when the durability guard is on and the held tool would break at/below the threshold. */
+    private static boolean isHeldToolExhausted(LocalPlayer player) {
+        int threshold = Common.getDurabilityThreshold();
+        if (threshold <= 0) {
+            return false;
+        }
+        ItemStack held = player.getInventory().getItem(player.getInventory().getSelectedSlot());
+        return isBelowThreshold(held, threshold);
+    }
+
+    /** A damageable item is "below threshold" when its remaining durability is at/under it. */
+    private static boolean isBelowThreshold(ItemStack stack, int threshold) {
+        if (stack.isEmpty() || !stack.isDamageableItem()) {
+            return false;
+        }
+        int remaining = stack.getMaxDamage() - stack.getDamageValue();
+        return remaining <= threshold;
+    }
+
     /**
      * Optimization #3: find the hotbar tool with the highest destroy speed for the target block
-     * and switch to it. Only when Common.autoToolSwitch is on, only when a strictly better tool
-     * exists, and we send the set-carried-item packet so the server uses the right tool when
-     * computing break time.
+     * and switch to it. Honours the tool-safety guard: never switches away from an enchanted
+     * (Silk Touch / Fortune) tool when that protection is on, and never switches to a tool whose
+     * remaining durability is at/below the threshold.
      */
     private static void maybeSwitchTool(LocalPlayer player, BlockState state) {
         if (!Common.isAutoToolSwitch()) {
@@ -211,10 +435,21 @@ public class ExcavationHandler {
         }
         Inventory inv = player.getInventory();
         int current = inv.getSelectedSlot();
+
+        // Protect enchanted tools: don't switch away from Silk Touch / Fortune.
+        if (Common.isProtectEnchanted() && hasSilkOrFortune(inv.getItem(current))) {
+            return;
+        }
+
+        int threshold = Common.getDurabilityThreshold();
         float bestSpeed = inv.getItem(current).getDestroySpeed(state);
         int best = current;
         for (int slot = 0; slot < Inventory.SELECTION_SIZE; slot++) {
-            float speed = inv.getItem(slot).getDestroySpeed(state);
+            ItemStack candidate = inv.getItem(slot);
+            if (threshold > 0 && isBelowThreshold(candidate, threshold)) {
+                continue; // never switch to a near-broken tool
+            }
+            float speed = candidate.getDestroySpeed(state);
             if (speed > bestSpeed) {
                 bestSpeed = speed;
                 best = slot;
@@ -222,11 +457,23 @@ public class ExcavationHandler {
         }
         if (best != current) {
             if (originalSlot < 0) {
-                originalSlot = current; // remember the pre-switch slot so we can restore it later
+                originalSlot = current;
             }
             inv.setSelectedSlot(best);
             player.connection.send(new ServerboundSetCarriedItemPacket(best));
         }
+    }
+
+    /** Whether a stack carries Silk Touch or Fortune. */
+    private static boolean hasSilkOrFortune(ItemStack stack) {
+        if (stack.isEmpty() || client.level == null) {
+            return false;
+        }
+        var enchants = client.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        Holder<Enchantment> silk = enchants.getOrThrow(Enchantments.SILK_TOUCH);
+        Holder<Enchantment> fortune = enchants.getOrThrow(Enchantments.FORTUNE);
+        return EnchantmentHelper.getItemEnchantmentLevel(silk, stack) > 0
+                || EnchantmentHelper.getItemEnchantmentLevel(fortune, stack) > 0;
     }
 
     /**
@@ -245,24 +492,25 @@ public class ExcavationHandler {
     }
 
     /**
-     * Unified range check.
+     * Unified range check, dispatched by mode.
      */
     private static boolean isWithinReach(BlockPos target,
                                          LocalPlayer player,
                                          int reach,
                                          int mode) {
-        if (mode == 0) {
-            return withinRect(target, player, reach);
-        } else {
-            return withinSphere(target, player, reach);
-        }
+        return switch (mode) {
+            case MODE_RECT -> withinRect(target, player, reach);
+            case MODE_TUNNEL -> withinTunnel(target, player, reach);
+            // Vein uses sphere bounds but is driven by performVeinMining; sphere is also the
+            // default fallback.
+            default -> isWithinSphere(target, player, reach);
+        };
     }
 
     /**
      * Whether the block is within the server-allowed mining range.
      */
     private static boolean isWithinServerReach(BlockPos target, LocalPlayer player) {
-        // The server-allowed real interaction distance.
         double realReach = player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE);
         double dx = target.getX() + 0.5 - player.getX();
         double dy = target.getY() + 0.5 - (player.getY() + player.getEyeHeight());
@@ -283,17 +531,17 @@ public class ExcavationHandler {
         double px = player.getX(), pz = player.getZ();
         double tx = target.getX() + 0.5, ty = target.getY() + 0.5, tz = target.getZ() + 0.5;
 
-        if (target.getY() < footY) return false;                                   // at/above foot level
-        if (Math.abs(tx - px) > reach || Math.abs(tz - pz) > reach) return false;  // horizontal
-        return ty <= eyeY + reach;                                                 // vertical
+        if (target.getY() < footY) return false;
+        if (Math.abs(tx - px) > reach || Math.abs(tz - pz) > reach) return false;
+        return ty <= eyeY + reach;
     }
 
     /**
      * Spherical (Euclidean-distance) range: distance <= reach.
      */
-    private static boolean withinSphere(BlockPos target,
-                                        LocalPlayer player,
-                                        int reach) {
+    private static boolean isWithinSphere(BlockPos target,
+                                          LocalPlayer player,
+                                          int reach) {
         double px = player.getX();
         double py = player.getY() + player.getEyeHeight();
         double pz = player.getZ();
@@ -302,6 +550,35 @@ public class ExcavationHandler {
         double tz = target.getZ() + 0.5;
         double dx = tx - px, dy = ty - py, dz = tz - pz;
         return dx * dx + dy * dy + dz * dz <= (double) reach * reach;
+    }
+
+    /**
+     * Directional tunnel range for branch mining: a shaft running in the player's horizontal
+     * look direction. {@code reach} sets the shaft length. Cross-section is 1-wide x 2-tall by
+     * default, or 3x3 when {@link Common#isTunnel3x3()} is on. The shaft starts at foot level so
+     * the floor under the player stays intact.
+     */
+    private static boolean withinTunnel(BlockPos target,
+                                        LocalPlayer player,
+                                        int reach) {
+        Direction facing = player.getDirection(); // horizontal: N/S/E/W
+        BlockPos origin = player.blockPosition();
+
+        int relX = target.getX() - origin.getX();
+        int relY = target.getY() - origin.getY();
+        int relZ = target.getZ() - origin.getZ();
+
+        // Forward distance along the facing axis, and sideways offset along the perpendicular axis.
+        Direction side = facing.getClockWise();
+        int forward = relX * facing.getStepX() + relZ * facing.getStepZ();
+        int sideways = relX * side.getStepX() + relZ * side.getStepZ();
+
+        int halfWidth = Common.isTunnel3x3() ? 1 : 0;
+        int maxHeight = Common.isTunnel3x3() ? 2 : 1; // 0..2 (3 tall) or 0..1 (2 tall)
+
+        if (forward < 1 || forward > reach) return false;
+        if (Math.abs(sideways) > halfWidth) return false;
+        return relY >= 0 && relY <= maxHeight;
     }
 
     /**

@@ -99,8 +99,19 @@ public class BridgeHandler {
         boolean horizCol = player.horizontalCollision;
         int prevSlot = inv.getSelectedSlot();
 
-        // 1) Silent rotation: send packets only, don't move the camera.
-        player.connection.send(new ServerboundMovePlayerPacket.Rot(spoofYaw, spoofPitch, onGround, horizCol));
+        // Server-safe mode: silent rotation is the detectable part. When it's on, only place if
+        // the player is already looking close enough to the hit point that no rotation spoof is
+        // needed; otherwise skip this tick rather than send a flaggable look-only packet.
+        boolean serverSafe = Common.isServerSafe();
+        boolean spoofRotation = !serverSafe;
+        if (serverSafe && !isLookingNear(realYaw, realPitch, spoofYaw, spoofPitch)) {
+            return;
+        }
+
+        // 1) Silent rotation: send packets only, don't move the camera. Skipped in server-safe mode.
+        if (spoofRotation) {
+            player.connection.send(new ServerboundMovePlayerPacket.Rot(spoofYaw, spoofPitch, onGround, horizCol));
+        }
         // 2) Switch to the building block.
         if (blockSlot != prevSlot) {
             inv.setSelectedSlot(blockSlot);
@@ -114,8 +125,18 @@ public class BridgeHandler {
             inv.setSelectedSlot(prevSlot);
             player.connection.send(new ServerboundSetCarriedItemPacket(prevSlot));
         }
-        // 5) Restore the real look direction.
-        player.connection.send(new ServerboundMovePlayerPacket.Rot(realYaw, realPitch, onGround, horizCol));
+        // 5) Restore the real look direction. Skipped in server-safe mode (no spoof was sent).
+        if (spoofRotation) {
+            player.connection.send(new ServerboundMovePlayerPacket.Rot(realYaw, realPitch, onGround, horizCol));
+        }
+    }
+
+    // Whether the player's real look direction is within a small tolerance of the placement
+    // angle, so a server can accept the placement without a spoofed rotation packet.
+    private static boolean isLookingNear(float realYaw, float realPitch, float wantYaw, float wantPitch) {
+        float dy = Math.abs(net.minecraft.util.Mth.degreesDifference(realYaw, wantYaw));
+        float dp = Math.abs(net.minecraft.util.Mth.degreesDifference(realPitch, wantPitch));
+        return dy <= 15.0f && dp <= 15.0f;
     }
 
     /**
