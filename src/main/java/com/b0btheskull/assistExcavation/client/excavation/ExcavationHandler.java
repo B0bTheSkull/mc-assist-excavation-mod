@@ -1,4 +1,4 @@
-package top.zspaces.assistExcavation.client.excavation;
+package com.b0btheskull.assistExcavation.client.excavation;
 
 import net.fabricmc.api.Environment;
 import net.fabricmc.api.EnvType;
@@ -12,8 +12,8 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.block.state.BlockState;
-import top.zspaces.assistExcavation.client.Common;
-import top.zspaces.assistExcavation.client.config.HotKey.AssistExcavationKeyBindings;
+import com.b0btheskull.assistExcavation.client.Common;
+import com.b0btheskull.assistExcavation.client.config.HotKey.AssistExcavationKeyBindings;
 
 import java.util.*;
 

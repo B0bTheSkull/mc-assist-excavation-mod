@@ -1,4 +1,4 @@
-package top.zspaces.assistExcavation.client.config.GUI;
+package com.b0btheskull.assistExcavation.client.config.GUI;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -9,7 +9,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import top.zspaces.assistExcavation.client.Common;
+import com.b0btheskull.assistExcavation.client.Common;
 
 @Environment(EnvType.CLIENT)
 public class AssistExcavationConfigScreen extends Screen {

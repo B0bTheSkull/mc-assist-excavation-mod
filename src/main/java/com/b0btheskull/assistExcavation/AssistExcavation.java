@@ -1,4 +1,4 @@
-package top.zspaces.assistExcavation;
+package com.b0btheskull.assistExcavation;
 
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;

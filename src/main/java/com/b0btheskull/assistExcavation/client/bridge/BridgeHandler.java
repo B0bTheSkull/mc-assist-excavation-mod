@@ -1,4 +1,4 @@
-package top.zspaces.assistExcavation.client.bridge;
+package com.b0btheskull.assistExcavation.client.bridge;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -17,7 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import top.zspaces.assistExcavation.client.Common;
+import com.b0btheskull.assistExcavation.client.Common;
 
 /**
  * Auto-bridge (scaffold): each tick, if the block under your feet is air, place a block there

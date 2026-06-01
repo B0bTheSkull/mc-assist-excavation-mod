@@ -1,4 +1,4 @@
-package top.zspaces.assistExcavation.client.config.GUI;
+package com.b0btheskull.assistExcavation.client.config.GUI;
 
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;

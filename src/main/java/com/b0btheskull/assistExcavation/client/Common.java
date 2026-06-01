@@ -1,4 +1,4 @@
-package top.zspaces.assistExcavation.client;
+package com.b0btheskull.assistExcavation.client;
 
 public class Common {
     // Allowed value ranges

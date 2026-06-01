@@ -1,4 +1,4 @@
-package top.zspaces.assistExcavation.client.config.HotKey;
+package com.b0btheskull.assistExcavation.client.config.HotKey;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -9,7 +9,7 @@ import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.zspaces.assistExcavation.client.config.GUI.AssistExcavationConfigScreen;
+import com.b0btheskull.assistExcavation.client.config.GUI.AssistExcavationConfigScreen;
 
 @Environment(EnvType.CLIENT)
 public class AssistExcavationKeyBindings {

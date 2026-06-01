@@ -57,6 +57,10 @@ Requires JDK 25 (Gradle auto-provisions it via the toolchain) and the Mod Menu j
 
 ## Credits & license
 
-Original mod © zhwuyuhehe, licensed Apache-2.0. This port and its additions are
-distributed under the same [Apache-2.0 license](LICENSE). See upstream:
-<https://github.com/zhwuyuhehe/assist-excavation>.
+This 26.1.2 port is maintained by [B0bTheSkull](https://github.com/B0bTheSkull/mc-assist-excavation-mod).
+**Report issues here:** <https://github.com/B0bTheSkull/mc-assist-excavation-mod/issues>.
+
+Based on the original **Assist Excavation** mod by
+[zhwuyuhehe](https://github.com/zhwuyuhehe/assist-excavation) © zhwuyuhehe,
+licensed Apache-2.0. This port and its additions are distributed under the same
+[Apache-2.0 license](LICENSE).

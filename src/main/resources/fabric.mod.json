@@ -4,24 +4,24 @@
   "version": "${version}",
   "name": "Assist Excavation",
   "description": "A client-side utility mod that helps players efficiently mine adjacent blocks by automatically targeting nearby blocks when mining. This mod enhances the excavation experience without providing unfair advantages in multiplayer settings.",
-  "authors": ["zhwuyuhehe"],
+  "authors": ["B0bTheSkull"],
+  "contributors": ["zhwuyuhehe (original Assist Excavation mod)"],
   "contact": {
-    "sources": "https://github.com/zhwuyuhehe/assist-excavation",
-    "issues": "https://github.com/zhwuyuhehe/assist-excavation/issues",
-    "email": "zhwuyuhehe@qq.com"
+    "sources": "https://github.com/B0bTheSkull/mc-assist-excavation-mod",
+    "issues": "https://github.com/B0bTheSkull/mc-assist-excavation-mod/issues"
   },
   "license": "Apache-2.0",
   "icon": "assets/assist-excavation/favicon-Z.png",
   "environment": "client",
   "entrypoints": {
     "client": [
-      "top.zspaces.assistExcavation.client.AssistExcavationClient"
+      "com.b0btheskull.assistExcavation.client.AssistExcavationClient"
     ],
     "main": [
-      "top.zspaces.assistExcavation.AssistExcavation"
+      "com.b0btheskull.assistExcavation.AssistExcavation"
     ],
     "modmenu": [
-      "top.zspaces.assistExcavation.client.config.GUI.AssistExcavationModMenu"
+      "com.b0btheskull.assistExcavation.client.config.GUI.AssistExcavationModMenu"
     ]
   },
   "depends": {

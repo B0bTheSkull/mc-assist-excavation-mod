@@ -1,14 +1,14 @@
-package top.zspaces.assistExcavation.client;
+package com.b0btheskull.assistExcavation.client;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.zspaces.assistExcavation.client.bridge.BridgeHandler;
-import top.zspaces.assistExcavation.client.bridge.BridgeKeyBindings;
-import top.zspaces.assistExcavation.client.config.HotKey.AssistExcavationKeyBindings;
-import top.zspaces.assistExcavation.client.excavation.ExcavationHandler;
+import com.b0btheskull.assistExcavation.client.bridge.BridgeHandler;
+import com.b0btheskull.assistExcavation.client.bridge.BridgeKeyBindings;
+import com.b0btheskull.assistExcavation.client.config.HotKey.AssistExcavationKeyBindings;
+import com.b0btheskull.assistExcavation.client.excavation.ExcavationHandler;
 
 public class AssistExcavationClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("assist-excavation");
