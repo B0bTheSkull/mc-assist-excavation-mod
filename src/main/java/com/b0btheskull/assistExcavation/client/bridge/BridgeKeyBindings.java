@@ -10,6 +10,7 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.b0btheskull.assistExcavation.client.Common;
+import com.b0btheskull.assistExcavation.client.config.HotKey.AssistExcavationKeyBindings;
 
 @Environment(EnvType.CLIENT)
 public class BridgeKeyBindings {
@@ -22,7 +23,7 @@ public class BridgeKeyBindings {
         toggleBridgeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.assist-excavation.bridge",
                 GLFW.GLFW_KEY_K,
-                KeyMapping.Category.MISC
+                AssistExcavationKeyBindings.CATEGORY
         ));
 
         // Toggle key: flips once per press. The GUI button shares the same Common.autoBridge flag.

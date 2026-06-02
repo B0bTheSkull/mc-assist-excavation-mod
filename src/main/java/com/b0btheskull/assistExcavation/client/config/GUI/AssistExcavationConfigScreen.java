@@ -26,23 +26,29 @@ public class AssistExcavationConfigScreen extends Screen {
     private boolean autoBridge;
     private int durabilityThreshold;
     private boolean protectEnchanted;
+    private boolean restockTools;
     private boolean protectBlockEntities;
     private boolean serverSafe;
     private boolean previewOverlay;
+    private boolean lavaGuard;
+    private int lavaGuardRadius;
 
     // UI widgets that need rebuilding on reset.
     private DelayTicksSlider delayTicksSlider;
     private ReachSlider reachSlider;
     private DurabilitySlider durabilitySlider;
+    private LavaRadiusSlider lavaRadiusSlider;
     private Button excavationModeButton;
     private Button tunnelSizeButton;
     private Button autoToolButton;
     private Button fastBreakButton;
     private Button autoBridgeButton;
     private Button protectEnchantedButton;
+    private Button restockToolsButton;
     private Button protectContainersButton;
     private Button serverSafeButton;
     private Button previewButton;
+    private Button lavaGuardButton;
 
     // Cached layout coordinates (computed in init(), reused by resetConfig()).
     private int colW;
@@ -51,6 +57,7 @@ public class AssistExcavationConfigScreen extends Screen {
     private int delayY;
     private int reachY;
     private int durY;
+    private int lavaRadiusY;
     private int infoY;
 
     public AssistExcavationConfigScreen(Screen parent) {
@@ -65,9 +72,12 @@ public class AssistExcavationConfigScreen extends Screen {
         this.autoBridge = Common.isAutoBridge();
         this.durabilityThreshold = Common.getDurabilityThreshold();
         this.protectEnchanted = Common.isProtectEnchanted();
+        this.restockTools = Common.isRestockTools();
         this.protectBlockEntities = Common.isProtectBlockEntities();
         this.serverSafe = Common.isServerSafe();
         this.previewOverlay = Common.isPreviewOverlay();
+        this.lavaGuard = Common.isLavaGuard();
+        this.lavaGuardRadius = Common.getLavaGuardRadius();
     }
 
     @Override
@@ -101,6 +111,13 @@ public class AssistExcavationConfigScreen extends Screen {
         durabilitySlider = new DurabilitySlider(leftX, ly, colW, h,
                 getDurabilityText(),
                 (double) durabilityThreshold / Common.MAX_DURABILITY);
+        ly += pitch;
+
+        this.lavaRadiusY = ly;
+        lavaRadiusSlider = new LavaRadiusSlider(leftX, ly, colW, h,
+                getLavaRadiusText(),
+                (double) (lavaGuardRadius - Common.MIN_LAVA_GUARD_RADIUS)
+                        / (Common.MAX_LAVA_GUARD_RADIUS - Common.MIN_LAVA_GUARD_RADIUS));
         ly += pitch;
 
         excavationModeButton = Button.builder(getExcavationModeText(), button -> {
@@ -147,6 +164,12 @@ public class AssistExcavationConfigScreen extends Screen {
         }).bounds(rightX, ry, colW, h).build();
         ry += pitch;
 
+        restockToolsButton = Button.builder(getRestockText(), button -> {
+            restockTools = !restockTools;
+            button.setMessage(getRestockText());
+        }).bounds(rightX, ry, colW, h).build();
+        ry += pitch;
+
         protectContainersButton = Button.builder(getProtectContainersText(), button -> {
             protectBlockEntities = !protectBlockEntities;
             button.setMessage(getProtectContainersText());
@@ -156,6 +179,12 @@ public class AssistExcavationConfigScreen extends Screen {
         serverSafeButton = Button.builder(getServerSafeText(), button -> {
             serverSafe = !serverSafe;
             button.setMessage(getServerSafeText());
+        }).bounds(rightX, ry, colW, h).build();
+        ry += pitch;
+
+        lavaGuardButton = Button.builder(getLavaGuardText(), button -> {
+            lavaGuard = !lavaGuard;
+            button.setMessage(getLavaGuardText());
         }).bounds(rightX, ry, colW, h).build();
         ry += pitch;
 
@@ -181,6 +210,7 @@ public class AssistExcavationConfigScreen extends Screen {
         addRenderableWidget(delayTicksSlider);
         addRenderableWidget(reachSlider);
         addRenderableWidget(durabilitySlider);
+        addRenderableWidget(lavaRadiusSlider);
         addRenderableWidget(excavationModeButton);
         addRenderableWidget(tunnelSizeButton);
         addRenderableWidget(previewButton);
@@ -188,8 +218,10 @@ public class AssistExcavationConfigScreen extends Screen {
         addRenderableWidget(fastBreakButton);
         addRenderableWidget(autoBridgeButton);
         addRenderableWidget(protectEnchantedButton);
+        addRenderableWidget(restockToolsButton);
         addRenderableWidget(protectContainersButton);
         addRenderableWidget(serverSafeButton);
+        addRenderableWidget(lavaGuardButton);
         addRenderableWidget(resetButton);
         addRenderableWidget(doneButton);
     }
@@ -204,9 +236,12 @@ public class AssistExcavationConfigScreen extends Screen {
         Common.setAutoBridge(autoBridge);
         Common.setDurabilityThreshold(durabilityThreshold);
         Common.setProtectEnchanted(protectEnchanted);
+        Common.setRestockTools(restockTools);
         Common.setProtectBlockEntities(protectBlockEntities);
         Common.setServerSafe(serverSafe);
         Common.setPreviewOverlay(previewOverlay);
+        Common.setLavaGuard(lavaGuard);
+        Common.setLavaGuardRadius(lavaGuardRadius);
         // Persist to disk so settings survive a restart.
         ConfigManager.save();
     }
@@ -221,24 +256,32 @@ public class AssistExcavationConfigScreen extends Screen {
         autoBridge = false;
         durabilityThreshold = 0;
         protectEnchanted = true;
+        restockTools = true;
         protectBlockEntities = true;
         serverSafe = false;
         previewOverlay = false;
+        lavaGuard = false;
+        lavaGuardRadius = 4;
 
         // Rebuild the sliders so their handle positions reset too.
         removeWidget(delayTicksSlider);
         removeWidget(reachSlider);
         removeWidget(durabilitySlider);
+        removeWidget(lavaRadiusSlider);
 
         delayTicksSlider = new DelayTicksSlider(leftX, delayY, colW, 20,
                 Component.translatable("screen.assist-excavation.config.delayTicks", delayTicks), 0.0);
         reachSlider = new ReachSlider(leftX, reachY, colW, 20,
                 Component.translatable("screen.assist-excavation.config.reach", reach), 0.0);
         durabilitySlider = new DurabilitySlider(leftX, durY, colW, 20, getDurabilityText(), 0.0);
+        lavaRadiusSlider = new LavaRadiusSlider(leftX, lavaRadiusY, colW, 20, getLavaRadiusText(),
+                (double) (lavaGuardRadius - Common.MIN_LAVA_GUARD_RADIUS)
+                        / (Common.MAX_LAVA_GUARD_RADIUS - Common.MIN_LAVA_GUARD_RADIUS));
 
         addRenderableWidget(delayTicksSlider);
         addRenderableWidget(reachSlider);
         addRenderableWidget(durabilitySlider);
+        addRenderableWidget(lavaRadiusSlider);
 
         excavationModeButton.setMessage(getExcavationModeText());
         tunnelSizeButton.setMessage(getTunnelSizeText());
@@ -247,8 +290,10 @@ public class AssistExcavationConfigScreen extends Screen {
         fastBreakButton.setMessage(getFastBreakText());
         autoBridgeButton.setMessage(getAutoBridgeText());
         protectEnchantedButton.setMessage(getProtectEnchantedText());
+        restockToolsButton.setMessage(getRestockText());
         protectContainersButton.setMessage(getProtectContainersText());
         serverSafeButton.setMessage(getServerSafeText());
+        lavaGuardButton.setMessage(getLavaGuardText());
     }
 
     private MutableComponent onOff(String key, boolean value) {
@@ -291,6 +336,10 @@ public class AssistExcavationConfigScreen extends Screen {
         return onOff("screen.assist-excavation.config.protectEnchanted", protectEnchanted);
     }
 
+    private MutableComponent getRestockText() {
+        return onOff("screen.assist-excavation.config.restockTools", restockTools);
+    }
+
     private MutableComponent getProtectContainersText() {
         return onOff("screen.assist-excavation.config.protectBlockEntities", protectBlockEntities);
     }
@@ -301,6 +350,14 @@ public class AssistExcavationConfigScreen extends Screen {
 
     private MutableComponent getPreviewText() {
         return onOff("screen.assist-excavation.config.preview", previewOverlay);
+    }
+
+    private MutableComponent getLavaGuardText() {
+        return onOff("screen.assist-excavation.config.lavaGuard", lavaGuard);
+    }
+
+    private MutableComponent getLavaRadiusText() {
+        return Component.translatable("screen.assist-excavation.config.lavaRadius", lavaGuardRadius);
     }
 
     @Override
@@ -373,6 +430,28 @@ public class AssistExcavationConfigScreen extends Screen {
         protected void updateMessage() {
             durabilityThreshold = (int) Math.round(this.value * Common.MAX_DURABILITY);
             this.setMessage(getDurabilityText());
+        }
+
+        @Override
+        protected void applyValue() {
+        }
+    }
+
+    // Custom slider for the lava-guard scan radius (MIN_LAVA_GUARD_RADIUS..MAX_LAVA_GUARD_RADIUS)
+    private class LavaRadiusSlider extends AbstractSliderButton {
+        public LavaRadiusSlider(int x, int y, int width, int height, Component text, double value) {
+            super(x, y, width, height, text, value);
+            lavaGuardRadius = (int) Math.round(value
+                    * (Common.MAX_LAVA_GUARD_RADIUS - Common.MIN_LAVA_GUARD_RADIUS))
+                    + Common.MIN_LAVA_GUARD_RADIUS;
+        }
+
+        @Override
+        protected void updateMessage() {
+            lavaGuardRadius = (int) Math.round(this.value
+                    * (Common.MAX_LAVA_GUARD_RADIUS - Common.MIN_LAVA_GUARD_RADIUS))
+                    + Common.MIN_LAVA_GUARD_RADIUS;
+            this.setMessage(getLavaRadiusText());
         }
 
         @Override

@@ -38,10 +38,13 @@ public final class ConfigManager {
         boolean autoBridge = false;
         int durabilityThreshold = 0;
         boolean protectEnchanted = true;
+        boolean restockTools = true;
         boolean protectBlockEntities = true;
         List<String> blockBlacklist = new ArrayList<>();
         boolean serverSafe = false;
         boolean previewOverlay = false;
+        boolean lavaGuard = false;
+        int lavaGuardRadius = 4;
     }
 
     /** Read the file into {@link Common}. Writes defaults if the file is missing or unreadable. */
@@ -84,10 +87,13 @@ public final class ConfigManager {
         Common.setAutoBridge(d.autoBridge);
         Common.setDurabilityThreshold(d.durabilityThreshold);
         Common.setProtectEnchanted(d.protectEnchanted);
+        Common.setRestockTools(d.restockTools);
         Common.setProtectBlockEntities(d.protectBlockEntities);
         Common.setBlockBlacklist(d.blockBlacklist);
         Common.setServerSafe(d.serverSafe);
         Common.setPreviewOverlay(d.previewOverlay);
+        Common.setLavaGuard(d.lavaGuard);
+        Common.setLavaGuardRadius(d.lavaGuardRadius);
     }
 
     private static ConfigData snapshot() {
@@ -101,10 +107,13 @@ public final class ConfigManager {
         d.autoBridge = Common.isAutoBridge();
         d.durabilityThreshold = Common.getDurabilityThreshold();
         d.protectEnchanted = Common.isProtectEnchanted();
+        d.restockTools = Common.isRestockTools();
         d.protectBlockEntities = Common.isProtectBlockEntities();
         d.blockBlacklist = new ArrayList<>(Common.getBlockBlacklist());
         d.serverSafe = Common.isServerSafe();
         d.previewOverlay = Common.isPreviewOverlay();
+        d.lavaGuard = Common.isLavaGuard();
+        d.lavaGuardRadius = Common.getLavaGuardRadius();
         return d;
     }
 }

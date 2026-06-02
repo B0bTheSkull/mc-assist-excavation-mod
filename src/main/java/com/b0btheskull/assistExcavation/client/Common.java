@@ -13,6 +13,8 @@ public class Common {
     public static final int MAX_EXCAVATION_MODE = 3;  // 0=rectangle 1=sphere 2=tunnel 3=vein
     public static final int MIN_DURABILITY = 0;       // 0 = guard disabled
     public static final int MAX_DURABILITY = 200;
+    public static final int MIN_LAVA_GUARD_RADIUS = 1; // lava-guard scan radius bounds
+    public static final int MAX_LAVA_GUARD_RADIUS = 6;
 
     private static Integer delayTicks = 0;            // default delay between blocks
     private static Integer reach = 1;                 // default reach
@@ -25,6 +27,7 @@ public class Common {
     // Tool-safety guard
     private static Integer durabilityThreshold = 0;   // stop using a tool at/below this remaining durability (0=off)
     private static boolean protectEnchanted = true;   // never auto-switch away from Silk Touch / Fortune tools
+    private static boolean restockTools = true;        // when a tool hits the durability guard, pull a fresh one from the inventory
 
     // Block protection (blacklist)
     private static boolean protectBlockEntities = true;            // never break chests, spawners, etc.
@@ -35,6 +38,11 @@ public class Common {
 
     // Render the outline of blocks that will be mined
     private static boolean previewOverlay = false;
+
+    // Lava guard: while assist mining, suspend mining to cap a nearby lava SOURCE block so you
+    // don't dig yourself into a burn. Off by default; radius is its own scan range (in blocks).
+    private static boolean lavaGuard = false;
+    private static Integer lavaGuardRadius = 4;
 
     // delayTicks getter/setter
     public static Integer getDelayTicks() {
@@ -125,6 +133,15 @@ public class Common {
         Common.protectEnchanted = protectEnchanted;
     }
 
+    // restockTools getter/setter
+    public static boolean isRestockTools() {
+        return restockTools;
+    }
+
+    public static void setRestockTools(boolean restockTools) {
+        Common.restockTools = restockTools;
+    }
+
     // protectBlockEntities getter/setter
     public static boolean isProtectBlockEntities() {
         return protectBlockEntities;
@@ -166,5 +183,26 @@ public class Common {
 
     public static void setPreviewOverlay(boolean previewOverlay) {
         Common.previewOverlay = previewOverlay;
+    }
+
+    // lavaGuard getter/setter
+    public static boolean isLavaGuard() {
+        return lavaGuard;
+    }
+
+    public static void setLavaGuard(boolean lavaGuard) {
+        Common.lavaGuard = lavaGuard;
+    }
+
+    // lavaGuardRadius getter/setter
+    public static Integer getLavaGuardRadius() {
+        return lavaGuardRadius;
+    }
+
+    public static void setLavaGuardRadius(Integer lavaGuardRadius) {
+        if (lavaGuardRadius != null) {
+            Common.lavaGuardRadius = Math.max(MIN_LAVA_GUARD_RADIUS,
+                    Math.min(MAX_LAVA_GUARD_RADIUS, lavaGuardRadius));
+        }
     }
 }

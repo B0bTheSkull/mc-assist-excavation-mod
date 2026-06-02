@@ -19,6 +19,8 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -77,6 +79,12 @@ public class ExcavationHandler {
         }
         LocalPlayer player = client.player;
         MultiPlayerGameMode im = client.gameMode;
+
+        // Lava guard: before mining anything, cap a nearby lava source if one is in range. When it
+        // acts, suspend mining for this tick (and any in-progress break) so we seal lava first.
+        if (Common.isLavaGuard() && LavaGuardHandler.tryGuard()) {
+            return;
+        }
 
         // Read config.
         int delayTicks = Common.getDelayTicks();
@@ -322,7 +330,8 @@ public class ExcavationHandler {
     /** Whether a position holds a block this mod would actually break (range checks done by caller). */
     private static boolean isBreakableCandidate(BlockPos pos, Block requiredBlock) {
         BlockState state = Objects.requireNonNull(client.level).getBlockState(pos);
-        if (state.isAir() || state.getDestroySpeed(client.level, pos) < 0) {
+        if (state.isAir() || state.getBlock() instanceof LiquidBlock
+                || state.getDestroySpeed(client.level, pos) < 0) {
             return false;
         }
         if (requiredBlock != null && !state.is(requiredBlock)) {
@@ -356,6 +365,12 @@ public class ExcavationHandler {
             return MINE_NONE; // air, or unbreakable (e.g. bedrock, hardness -1)
         }
 
+        // Never try to "mine" a liquid block: you can't break lava/water by mining, and attempting
+        // it just makes the excavator swing at running lava sources instead of skipping past them.
+        if (state.getBlock() instanceof LiquidBlock) {
+            return MINE_NONE;
+        }
+
         // Vein mode: skip anything that isn't the seeded block.
         if (requiredBlock != null && !state.is(requiredBlock)) {
             return MINE_NONE;
@@ -366,15 +381,12 @@ public class ExcavationHandler {
             return MINE_NONE;
         }
 
-        // Tool-safety guard: if the held tool is at/below the durability threshold, don't start a
-        // new block with it (protects tools from breaking mid-job).
-        if (isHeldToolExhausted(player)) {
+        // Ensure we're holding a usable, efficient tool for this block: switch within the hotbar to
+        // the fastest above-threshold tool, and if the held tool is worn out with no hotbar backup,
+        // pull a fresh one from the main inventory. Stops only when no usable tool remains anywhere.
+        if (!ensureUsableTool(player, state)) {
             return MINE_NONE;
         }
-
-        // Optimization #3: switch to the fastest tool for this block before starting the break
-        // (only at the start — never mid-break).
-        maybeSwitchTool(player, state);
 
         boolean started = im.startDestroyBlock(pos, Direction.UP);
         if (!started) {
@@ -404,14 +416,74 @@ public class ExcavationHandler {
         return blacklist.contains(id);
     }
 
-    /** True when the durability guard is on and the held tool would break at/below the threshold. */
-    private static boolean isHeldToolExhausted(LocalPlayer player) {
+    /**
+     * Make sure the player is holding a usable, efficient tool for {@code state}. Switches within
+     * the hotbar to the fastest above-threshold tool first; if the durability guard is on and the
+     * held tool is still worn out (no fresh hotbar tool), optionally pulls a fresh tool from the
+     * main inventory. Returns false only when no usable tool remains, so the caller stops rather
+     * than break the player's last good tool.
+     */
+    private static boolean ensureUsableTool(LocalPlayer player, BlockState state) {
+        maybeSwitchTool(player, state);
+
         int threshold = Common.getDurabilityThreshold();
         if (threshold <= 0) {
+            return true; // durability guard off: never blocks mining
+        }
+
+        Inventory inv = player.getInventory();
+        if (!isBelowThreshold(inv.getItem(inv.getSelectedSlot()), threshold)) {
+            return true; // held tool (or bare hand) is fine
+        }
+
+        // Held tool is worn out and the hotbar has no fresh replacement: try the main inventory.
+        if (Common.isRestockTools() && !Common.isServerSafe() && restockFromInventory(player, state)) {
+            return !isBelowThreshold(inv.getItem(inv.getSelectedSlot()), threshold);
+        }
+        return false;
+    }
+
+    /**
+     * Pull the best fresh mining tool from the main inventory (slots 9..35) into the held hotbar
+     * slot via a silent container SWAP, so mining continues after a tool wears out. Only considers
+     * damageable tools above the durability threshold and picks the fastest for this block. Returns
+     * true if a swap happened. This is detectable inventory manipulation, so callers gate it behind
+     * Server-Safe mode.
+     */
+    private static boolean restockFromInventory(LocalPlayer player, BlockState state) {
+        // The player inventory menu must be the active container (no other screen open) for the
+        // SWAP to be accepted by the server.
+        if (client.gameMode == null || player.containerMenu != player.inventoryMenu) {
             return false;
         }
-        ItemStack held = player.getInventory().getItem(player.getInventory().getSelectedSlot());
-        return isBelowThreshold(held, threshold);
+        int threshold = Common.getDurabilityThreshold();
+        Inventory inv = player.getInventory();
+
+        int bestSlot = -1;
+        float bestSpeed = 1.0f; // require better than a bare hand before bothering to swap
+        for (int slot = Inventory.SELECTION_SIZE; slot < Inventory.INVENTORY_SIZE; slot++) {
+            ItemStack candidate = inv.getItem(slot); // 9..35 = the main inventory (non-hotbar)
+            if (candidate.isEmpty() || !candidate.isDamageableItem()) {
+                continue; // only restock actual (damageable) tools
+            }
+            if (isBelowThreshold(candidate, threshold)) {
+                continue; // skip near-broken replacements
+            }
+            float speed = candidate.getDestroySpeed(state);
+            if (speed > bestSpeed) {
+                bestSpeed = speed;
+                bestSlot = slot;
+            }
+        }
+        if (bestSlot < 0) {
+            return false; // no suitable fresh tool in the inventory
+        }
+
+        // In the player inventory menu, main-inventory slots map 1:1 to container slots (9..35);
+        // SWAP exchanges that slot with the held hotbar slot (button = hotbar index 0..8).
+        client.gameMode.handleContainerInput(player.inventoryMenu.containerId, bestSlot,
+                inv.getSelectedSlot(), ContainerInput.SWAP, player);
+        return true;
     }
 
     /** A damageable item is "below threshold" when its remaining durability is at/under it. */
@@ -442,10 +514,16 @@ public class ExcavationHandler {
         }
 
         int threshold = Common.getDurabilityThreshold();
-        float bestSpeed = inv.getItem(current).getDestroySpeed(state);
+        // If the held tool is itself worn out, disqualify its speed (-1) so we switch to the best
+        // fresh tool available — even a slower one — instead of finishing off a near-dead tool.
+        boolean currentExhausted = threshold > 0 && isBelowThreshold(inv.getItem(current), threshold);
+        float bestSpeed = currentExhausted ? -1.0f : inv.getItem(current).getDestroySpeed(state);
         int best = current;
         for (int slot = 0; slot < Inventory.SELECTION_SIZE; slot++) {
             ItemStack candidate = inv.getItem(slot);
+            if (candidate.isEmpty()) {
+                continue; // don't switch to an empty hand; the restock path handles no-tool cases
+            }
             if (threshold > 0 && isBelowThreshold(candidate, threshold)) {
                 continue; // never switch to a near-broken tool
             }

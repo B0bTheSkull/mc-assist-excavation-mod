@@ -1,12 +1,15 @@
 {
+  "key.category.assist-excavation.main": "Assist Excavation",
   "key.assist-excavation.category": "Assist Excavation",
   "key.assist-excavation.open_config": "§lAssist Excavation Config",
   "key.assist-excavation.toggle": "Toggle Assist Excavation",
   "key.assist-excavation.bridge": "Toggle Auto Bridge",
+  "key.assist-excavation.lavaguard": "Toggle Lava Guard",
   "message.assist-excavation.disabled": "§aDisabled",
   "message.assist-excavation.enabled": "§cEnabled",
   "message.assist-excavation.toggle": "§6Assist Excavation %s",
   "message.assist-excavation.bridge.toggle": "§bAuto Bridge %s",
+  "message.assist-excavation.lavaguard.toggle": "§6Lava Guard %s",
   "screen.assist-excavation.config.delayTicks": "Delay Ticks: %d",
   "screen.assist-excavation.config.excavationMode": "Excavation Mode: %s",
   "screen.assist-excavation.config.excavationMode.0": "Rectangle",
@@ -23,11 +26,14 @@
   "screen.assist-excavation.config.durability": "Tool Durability Guard: %s",
   "screen.assist-excavation.config.durability.off": "Off",
   "screen.assist-excavation.config.protectEnchanted": "Protect Silk/Fortune: %s",
+  "screen.assist-excavation.config.restockTools": "Auto-Restock Tools: %s",
   "screen.assist-excavation.config.protectBlockEntities": "Protect Containers: %s",
   "screen.assist-excavation.config.serverSafe": "Server-Safe Mode: %s",
   "screen.assist-excavation.config.preview": "Preview Overlay: %s",
+  "screen.assist-excavation.config.lavaGuard": "Lava Guard: %s",
+  "screen.assist-excavation.config.lavaRadius": "Lava Guard Radius: %d",
   "screen.assist-excavation.config.reset": "Reset to Default",
   "screen.assist-excavation.config.title": "Assist Excavation Configuration",
   "screen.assist-excavation.config.real_reach": "Game Rule's Real Reach %f",
-  "modmenu.descriptionTranslation.assist-excavation": "A client-side utility mod that helps players efficiently mine adjacent blocks. This mod automatically targets nearby blocks when mining, making it easier to excavate large areas. It respects server rules and does not provide unfair advantages in multiplayer games. However, there is still a possibility that the server may identify it as cheating."
+  "modmenu.descriptionTranslation.assist-excavation": "A client-side mining assistant. Toggle it on (default J) to auto-mine the blocks around you in your chosen shape — rectangle, sphere, tunnel (branch mining), or vein (ore-following). Quality-of-life features: auto-switch to the fastest tool for each block, a durability guard that auto-restocks a fresh tool from your inventory before one breaks, protection for Silk Touch / Fortune tools and for containers/spawners, an optional auto-bridge so you don't fall, a Lava Guard that caps nearby lava sources so you don't burn, a configurable inter-block delay, and a preview overlay of what will be mined. A Server-Safe mode disables the detectable techniques. It stays within your normal block-reach and does not break server interaction limits, but a server may still flag automation as cheating — use at your own risk."
 }

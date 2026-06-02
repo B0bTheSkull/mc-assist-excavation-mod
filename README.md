@@ -30,10 +30,17 @@ Other features (all toggleable unless noted):
 - **Fast instant-break** — clears every instant-breakable block in range each tick
   (grass, dirt, sand, …), capped at 16/tick.
 - **Auto tool switch** — switches to the fastest hotbar tool for the target block
-  before breaking it (and syncs the slot to the server).
-- **Tool-safety guard** — a durability threshold that stops the miner from starting
-  blocks with a near-broken tool, plus a *Protect Silk/Fortune* option that never
-  auto-switches away from a Silk Touch or Fortune tool.
+  before breaking it (and syncs the slot to the server). Liquid blocks (lava/water)
+  are never targeted, so the miner won't swing uselessly at a lava source.
+- **Tool-safety guard** — a durability threshold that stops the miner from finishing
+  off a near-broken tool, plus a *Protect Silk/Fortune* option that never auto-switches
+  away from a Silk Touch or Fortune tool.
+- **Auto-restock tools** — when the held tool hits the durability threshold and no
+  fresh tool is left in the hotbar, pulls a suitable replacement tool out of your main
+  inventory (a silent inventory swap) and keeps mining, instead of just stopping.
+- **Lava Guard** — while assist mining, suspends mining to cap the nearest lava
+  *source* block within a configurable radius with a block from your hotbar (preferring
+  a non-flammable one), so you don't dig yourself into a burn. Off by default.
 - **Block protection** — never breaks containers, spawners, and other block-entities
   (toggleable), plus a user block-id blacklist (e.g. `minecraft:bedrock`) edited in
   the config file.
@@ -54,20 +61,27 @@ Settings persist across restarts (saved to `config/assist-excavation.json`).
 |-------------------|-----------|
 | Toggle assist     | `J`       |
 | Toggle auto-bridge| `K`       |
+| Toggle Lava Guard | unbound   |
 | Open config       | unbound (use Mod Menu, or bind it in Controls) |
 
 Defaults were chosen to avoid conflicts with a heavily-bound setup; rebind freely in
-Options → Controls (they appear under *Miscellaneous*). All toggles are also in the
-config screen (Mod Menu → Assist Excavation).
+Options → Controls, where all of this mod's binds are grouped under their own
+**Assist Excavation** category. All toggles are also in the config screen
+(Mod Menu → Assist Excavation).
 
-## ⚠️ Auto-bridge and anti-cheat
+## ⚠️ Detectable techniques and anti-cheat
 
-The auto-bridge places blocks while you look anywhere by sending a **silent rotation**
-to the server (the camera doesn't actually turn). On a vanilla / no-anti-cheat server
-or in singleplayer this is accepted. On servers running Grim/NCP/Vulcan it is a
-**detectable technique** and can get you flagged or banned. Use it only where you
-accept that risk. The upstream mod's stated goal is to respect server rules; this fork
-deliberately adds a feature that does not, so it's off by default.
+A few features rely on packet tricks that anti-cheats (Grim/NCP/Vulcan) can flag:
+
+- **Auto-bridge** and **Lava Guard** place blocks while you look anywhere by sending a
+  **silent rotation** to the server (the camera doesn't actually turn).
+- **Auto-restock tools** sends an **inventory swap** click with no inventory screen open.
+
+On a vanilla / no-anti-cheat server or in singleplayer these are accepted. Elsewhere
+they may get you flagged or banned — use them only where you accept that risk.
+**Server-Safe mode** disables all of these: it caps instant-breaks to one per tick,
+skips the restock inventory swap, and only places (bridge/lava) when you're already
+looking near the spot so no silent rotation is sent.
 
 ## Building
 
