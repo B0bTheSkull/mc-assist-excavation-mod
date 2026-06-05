@@ -16,7 +16,7 @@ import com.b0btheskull.assistExcavation.client.excavation.ExcavationHandler;
 /**
  * Top-right HUD readout of the mod's live state: enabled/disabled, current mode, held-tool
  * durability, and the session blocks-mined counter. Gated on {@link Common#isHudStats()}.
- * Sits top-right so it never collides with the spectator list at top-left.
+ * Sits top-right.
  */
 @Environment(EnvType.CLIENT)
 public final class StatsHud implements HudElement {

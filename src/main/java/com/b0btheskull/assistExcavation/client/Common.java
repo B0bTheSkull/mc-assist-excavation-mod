@@ -44,11 +44,6 @@ public class Common {
     private static boolean lavaGuard = false;
     private static Integer lavaGuardRadius = 4;
 
-    // Spectator awareness (independent of mining): a top-left HUD list of who is in spectator mode,
-    // and a client-side glow on any spectator player your client actually receives. Both off by default.
-    private static boolean spectatorHud = false;
-    private static boolean spectatorGlow = false;
-
     // Stats HUD: top-right readout of mode / state / held-tool durability / session blocks mined.
     private static boolean hudStats = false;
 
@@ -212,24 +207,6 @@ public class Common {
             Common.lavaGuardRadius = Math.max(MIN_LAVA_GUARD_RADIUS,
                     Math.min(MAX_LAVA_GUARD_RADIUS, lavaGuardRadius));
         }
-    }
-
-    // spectatorHud getter/setter
-    public static boolean isSpectatorHud() {
-        return spectatorHud;
-    }
-
-    public static void setSpectatorHud(boolean spectatorHud) {
-        Common.spectatorHud = spectatorHud;
-    }
-
-    // spectatorGlow getter/setter
-    public static boolean isSpectatorGlow() {
-        return spectatorGlow;
-    }
-
-    public static void setSpectatorGlow(boolean spectatorGlow) {
-        Common.spectatorGlow = spectatorGlow;
     }
 
     // hudStats getter/setter

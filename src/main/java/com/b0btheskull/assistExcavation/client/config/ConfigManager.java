@@ -53,8 +53,6 @@ public final class ConfigManager {
         boolean previewOverlay = false;
         boolean lavaGuard = false;
         int lavaGuardRadius = 4;
-        boolean spectatorHud = false;
-        boolean spectatorGlow = false;
         boolean hudStats = false;
     }
 
@@ -105,8 +103,6 @@ public final class ConfigManager {
         Common.setPreviewOverlay(d.previewOverlay);
         Common.setLavaGuard(d.lavaGuard);
         Common.setLavaGuardRadius(d.lavaGuardRadius);
-        Common.setSpectatorHud(d.spectatorHud);
-        Common.setSpectatorGlow(d.spectatorGlow);
         Common.setHudStats(d.hudStats);
     }
 
@@ -188,8 +184,6 @@ public final class ConfigManager {
         d.previewOverlay = Common.isPreviewOverlay();
         d.lavaGuard = Common.isLavaGuard();
         d.lavaGuardRadius = Common.getLavaGuardRadius();
-        d.spectatorHud = Common.isSpectatorHud();
-        d.spectatorGlow = Common.isSpectatorGlow();
         d.hudStats = Common.isHudStats();
         return d;
     }

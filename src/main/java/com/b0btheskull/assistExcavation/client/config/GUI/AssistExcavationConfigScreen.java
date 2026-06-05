@@ -47,8 +47,6 @@ public class AssistExcavationConfigScreen extends Screen {
     private boolean previewOverlay;
     private boolean lavaGuard;
     private int lavaGuardRadius;
-    private boolean spectatorHud;
-    private boolean spectatorGlow;
     private boolean hudStats;
 
     // Y of the info line, computed in init() per tab.
@@ -82,8 +80,6 @@ public class AssistExcavationConfigScreen extends Screen {
         this.previewOverlay = Common.isPreviewOverlay();
         this.lavaGuard = Common.isLavaGuard();
         this.lavaGuardRadius = Common.getLavaGuardRadius();
-        this.spectatorHud = Common.isSpectatorHud();
-        this.spectatorGlow = Common.isSpectatorGlow();
         this.hudStats = Common.isHudStats();
     }
 
@@ -182,12 +178,6 @@ public class AssistExcavationConfigScreen extends Screen {
                 y += pitch;
                 addRenderableWidget(toggle(x, y, colW, h, this::getStatsHudText,
                         () -> hudStats = !hudStats));
-                y += pitch;
-                addRenderableWidget(toggle(x, y, colW, h, this::getSpectatorHudText,
-                        () -> spectatorHud = !spectatorHud));
-                y += pitch;
-                addRenderableWidget(toggle(x, y, colW, h, this::getSpectatorGlowText,
-                        () -> spectatorGlow = !spectatorGlow));
                 y += pitch;
             }
             case TAB_PRESETS -> {
@@ -323,8 +313,6 @@ public class AssistExcavationConfigScreen extends Screen {
         Common.setPreviewOverlay(previewOverlay);
         Common.setLavaGuard(lavaGuard);
         Common.setLavaGuardRadius(lavaGuardRadius);
-        Common.setSpectatorHud(spectatorHud);
-        Common.setSpectatorGlow(spectatorGlow);
         Common.setHudStats(hudStats);
         // Persist to disk so settings survive a restart.
         ConfigManager.save();
@@ -346,8 +334,6 @@ public class AssistExcavationConfigScreen extends Screen {
         previewOverlay = false;
         lavaGuard = false;
         lavaGuardRadius = 4;
-        spectatorHud = false;
-        spectatorGlow = false;
         hudStats = false;
         // Rebuild so sliders/toggles on the current tab reflect the reset values.
         rebuildWidgets();
@@ -415,14 +401,6 @@ public class AssistExcavationConfigScreen extends Screen {
 
     private MutableComponent getLavaRadiusText() {
         return Component.translatable("screen.assist-excavation.config.lavaRadius", lavaGuardRadius);
-    }
-
-    private MutableComponent getSpectatorHudText() {
-        return onOff("screen.assist-excavation.config.spectatorHud", spectatorHud);
-    }
-
-    private MutableComponent getSpectatorGlowText() {
-        return onOff("screen.assist-excavation.config.spectatorGlow", spectatorGlow);
     }
 
     private MutableComponent getStatsHudText() {

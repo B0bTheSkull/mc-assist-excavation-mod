@@ -13,8 +13,6 @@ import com.b0btheskull.assistExcavation.client.config.HotKey.AssistExcavationKey
 import com.b0btheskull.assistExcavation.client.config.ConfigManager;
 import com.b0btheskull.assistExcavation.client.excavation.ExcavationHandler;
 import com.b0btheskull.assistExcavation.client.excavation.PreviewOverlay;
-import com.b0btheskull.assistExcavation.client.spectator.SpectatorHandler;
-import com.b0btheskull.assistExcavation.client.spectator.SpectatorHud;
 import com.b0btheskull.assistExcavation.client.hud.StatsHud;
 
 public class AssistExcavationClient implements ClientModInitializer {
@@ -34,16 +32,8 @@ public class AssistExcavationClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
         ClientTickEvents.END_CLIENT_TICK.register(client -> BridgeHandler.handleBridge());
 
-        // Spectator glow upkeep: lights spectator players the client can actually see.
-        ClientTickEvents.END_CLIENT_TICK.register(SpectatorHandler::handleTick);
-
         // Register the mining preview overlay (world render).
         PreviewOverlay.register();
-
-        // Register the top-left "who's spectating" HUD list.
-        HudElementRegistry.addLast(
-                Identifier.fromNamespaceAndPath("assist-excavation", "spectator_hud"),
-                new SpectatorHud());
 
         // Register the top-right stats readout HUD.
         HudElementRegistry.addLast(
