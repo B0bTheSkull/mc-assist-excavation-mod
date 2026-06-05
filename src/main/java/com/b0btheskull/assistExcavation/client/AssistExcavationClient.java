@@ -2,7 +2,9 @@ package com.b0btheskull.assistExcavation.client;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.b0btheskull.assistExcavation.client.bridge.BridgeHandler;
@@ -11,6 +13,9 @@ import com.b0btheskull.assistExcavation.client.config.HotKey.AssistExcavationKey
 import com.b0btheskull.assistExcavation.client.config.ConfigManager;
 import com.b0btheskull.assistExcavation.client.excavation.ExcavationHandler;
 import com.b0btheskull.assistExcavation.client.excavation.PreviewOverlay;
+import com.b0btheskull.assistExcavation.client.spectator.SpectatorHandler;
+import com.b0btheskull.assistExcavation.client.spectator.SpectatorHud;
+import com.b0btheskull.assistExcavation.client.hud.StatsHud;
 
 public class AssistExcavationClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("assist-excavation");
@@ -29,8 +34,21 @@ public class AssistExcavationClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
         ClientTickEvents.END_CLIENT_TICK.register(client -> BridgeHandler.handleBridge());
 
+        // Spectator glow upkeep: lights spectator players the client can actually see.
+        ClientTickEvents.END_CLIENT_TICK.register(SpectatorHandler::handleTick);
+
         // Register the mining preview overlay (world render).
         PreviewOverlay.register();
+
+        // Register the top-left "who's spectating" HUD list.
+        HudElementRegistry.addLast(
+                Identifier.fromNamespaceAndPath("assist-excavation", "spectator_hud"),
+                new SpectatorHud());
+
+        // Register the top-right stats readout HUD.
+        HudElementRegistry.addLast(
+                Identifier.fromNamespaceAndPath("assist-excavation", "stats_hud"),
+                new StatsHud());
 
         LOGGER.info("Assist Excavation mod initialized - Enhancing your mining experience while respecting server rules");
     }

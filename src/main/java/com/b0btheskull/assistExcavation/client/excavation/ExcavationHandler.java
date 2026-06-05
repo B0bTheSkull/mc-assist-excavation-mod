@@ -57,6 +57,10 @@ public class ExcavationHandler {
     private static BlockPos currentMiningPos = null;
     private static int delayCounter = 0;
 
+    // Session counter of blocks this mod has broken, surfaced by the stats HUD. Survives toggling
+    // assist mining on/off; reset explicitly via resetSessionStats().
+    private static long sessionBlocksMined = 0;
+
     // The hotbar slot held before auto tool-switch began; restored when excavation is
     // turned off. -1 means there is nothing to restore.
     private static int originalSlot = -1;
@@ -65,6 +69,16 @@ public class ExcavationHandler {
     private static final Direction[] DIRECTIONS = {
             Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST
     };
+
+    /** Blocks this mod has broken this session (for the stats HUD). */
+    public static long getSessionBlocksMined() {
+        return sessionBlocksMined;
+    }
+
+    /** Zero the session blocks-mined counter. */
+    public static void resetSessionStats() {
+        sessionBlocksMined = 0;
+    }
 
     public static void handleExcavation() {
         // If assist mining is off, reset all state and bail.
@@ -101,6 +115,7 @@ public class ExcavationHandler {
                 BlockState state = client.level.getBlockState(currentMiningPos);
                 if (state.isAir()) {
                     // Finished.
+                    sessionBlocksMined++;
                     currentMiningPos = null;
                     if (delayTicks > 0) {
                         delayCounter = delayTicks;
@@ -395,6 +410,7 @@ public class ExcavationHandler {
 
         // startDestroyBlock breaks "one-hit" blocks immediately. If it's now air, it was instant.
         if (client.level.getBlockState(pos).isAir()) {
+            sessionBlocksMined++;
             return MINE_INSTANT;
         }
 
@@ -469,7 +485,7 @@ public class ExcavationHandler {
             if (isBelowThreshold(candidate, threshold)) {
                 continue; // skip near-broken replacements
             }
-            float speed = candidate.getDestroySpeed(state);
+            float speed = effectiveSpeed(candidate, state);
             if (speed > bestSpeed) {
                 bestSpeed = speed;
                 bestSlot = slot;
@@ -507,17 +523,20 @@ public class ExcavationHandler {
         }
         Inventory inv = player.getInventory();
         int current = inv.getSelectedSlot();
+        ItemStack held = inv.getItem(current);
 
-        // Protect enchanted tools: don't switch away from Silk Touch / Fortune.
-        if (Common.isProtectEnchanted() && hasSilkOrFortune(inv.getItem(current))) {
+        // Protect enchanted tools — but only when the enchanted tool is actually the right tool for
+        // this block. A Fortune/Silk pickaxe gives no benefit on a hoe block like warped wart, so
+        // there we still allow switching to the proper (faster) tool.
+        if (Common.isProtectEnchanted() && hasSilkOrFortune(held) && held.getDestroySpeed(state) > 1.0f) {
             return;
         }
 
         int threshold = Common.getDurabilityThreshold();
         // If the held tool is itself worn out, disqualify its speed (-1) so we switch to the best
         // fresh tool available — even a slower one — instead of finishing off a near-dead tool.
-        boolean currentExhausted = threshold > 0 && isBelowThreshold(inv.getItem(current), threshold);
-        float bestSpeed = currentExhausted ? -1.0f : inv.getItem(current).getDestroySpeed(state);
+        boolean currentExhausted = threshold > 0 && isBelowThreshold(held, threshold);
+        float bestSpeed = currentExhausted ? -1.0f : effectiveSpeed(held, state);
         int best = current;
         for (int slot = 0; slot < Inventory.SELECTION_SIZE; slot++) {
             ItemStack candidate = inv.getItem(slot);
@@ -527,7 +546,7 @@ public class ExcavationHandler {
             if (threshold > 0 && isBelowThreshold(candidate, threshold)) {
                 continue; // never switch to a near-broken tool
             }
-            float speed = candidate.getDestroySpeed(state);
+            float speed = effectiveSpeed(candidate, state);
             if (speed > bestSpeed) {
                 bestSpeed = speed;
                 best = slot;
@@ -540,6 +559,34 @@ public class ExcavationHandler {
             inv.setSelectedSlot(best);
             player.connection.send(new ServerboundSetCarriedItemPacket(best));
         }
+    }
+
+    /**
+     * Mining speed used to RANK hotbar tools, Efficiency-aware. {@link ItemStack#getDestroySpeed}
+     * ignores enchantments; vanilla adds the Efficiency bonus (level² + 1) on top, but only when the
+     * tool is the correct one for the block (base speed &gt; 1). Player-wide modifiers (Haste, Aqua
+     * Affinity, on-ground penalty) apply equally to every candidate, so they don't change the
+     * ranking and are intentionally omitted.
+     */
+    private static float effectiveSpeed(ItemStack stack, BlockState state) {
+        float base = stack.getDestroySpeed(state);
+        if (base > 1.0f) {
+            int eff = efficiencyLevel(stack);
+            if (eff > 0) {
+                base += eff * eff + 1;
+            }
+        }
+        return base;
+    }
+
+    /** Efficiency enchantment level on a stack (0 if none). */
+    private static int efficiencyLevel(ItemStack stack) {
+        if (stack.isEmpty() || client.level == null) {
+            return 0;
+        }
+        var enchants = client.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        Holder<Enchantment> efficiency = enchants.getOrThrow(Enchantments.EFFICIENCY);
+        return EnchantmentHelper.getItemEnchantmentLevel(efficiency, stack);
     }
 
     /** Whether a stack carries Silk Touch or Fortune. */
