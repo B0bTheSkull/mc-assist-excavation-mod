@@ -46,10 +46,10 @@ public class AssistExcavationKeyBindings {
                 CATEGORY
         ));
 
-        // Open-config (default unbound; bind it yourself in Controls if you want a hotkey)
+        // Open-config (default ' apostrophe; rebindable in Controls)
         openConfigKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.assist-excavation.open_config",
-                GLFW.GLFW_KEY_UNKNOWN,
+                GLFW.GLFW_KEY_APOSTROPHE,
                 CATEGORY
         ));
 

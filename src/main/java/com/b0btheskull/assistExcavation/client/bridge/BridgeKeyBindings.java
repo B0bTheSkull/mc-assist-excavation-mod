@@ -22,7 +22,7 @@ public class BridgeKeyBindings {
     public static void registerKeyBindings() {
         toggleBridgeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.assist-excavation.bridge",
-                GLFW.GLFW_KEY_K,
+                GLFW.GLFW_KEY_SEMICOLON,
                 AssistExcavationKeyBindings.CATEGORY
         ));
 
