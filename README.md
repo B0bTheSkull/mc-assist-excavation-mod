@@ -38,20 +38,30 @@ Other features (all toggleable unless noted):
 - **Auto-restock tools** — when the held tool hits the durability threshold and no
   fresh tool is left in the hotbar, pulls a suitable replacement tool out of your main
   inventory (a silent inventory swap) and keeps mining, instead of just stopping.
+- **Auto-restock blocks** — when Lava Guard or the auto-bridge runs out of building
+  blocks in the hotbar, pulls a suitable full block (e.g. netherrack) from your main
+  inventory into a free hotbar slot via a silent swap, so they keep working. On by
+  default; needs an empty hotbar slot to receive the stack.
 - **Lava Guard** — while assist mining, suspends mining to cap the nearest lava
   *source* block within a configurable radius with a block from your hotbar (preferring
-  a non-flammable one), so you don't dig yourself into a burn. Off by default.
+  a non-flammable one, and restocking from your inventory if the hotbar's out), so you
+  don't dig yourself into a burn. Off by default.
+- **Never re-mines its own placements** — blocks the mod places (lava-guard caps and
+  auto-bridge blocks) are remembered and excluded from mining, so it won't churn a lava
+  cap back open or dig the bridge out from under you.
 - **Block protection** — never breaks containers, spawners, and other block-entities
   (toggleable), plus a user block-id blacklist (e.g. `minecraft:bedrock`) edited in
   the config file.
 - **Mining preview overlay** — draws a green outline around every block the active
   mode would break, so you can see the target region before it goes.
 - **Server-safe mode** — one switch that disables the detectable techniques: it caps
-  instant-breaks to one per tick and stops the auto-bridge from sending silent-rotation
-  packets (it will only place when you are already looking near the spot).
+  instant-breaks to one per tick, skips the inventory-swap restocks (tools and blocks),
+  and stops the auto-bridge/lava-guard from sending silent-rotation packets (they only
+  place when you are already looking near the spot).
 - **Auto-bridge (scaffold)** — places a block under your feet as you move so you can
-  sprint across gaps without falling. Auto-picks a solid block from your hotbar and
-  switches back. **See the warning below.**
+  sprint across gaps without falling. Auto-picks a solid block from your hotbar
+  (preferring non-flammable, restocking from your inventory if needed) and switches
+  back. **See the warning below.**
 
 Settings persist across restarts (saved to `config/assist-excavation.json`).
 
@@ -75,7 +85,7 @@ A few features rely on packet tricks that anti-cheats (Grim/NCP/Vulcan) can flag
 
 - **Auto-bridge** and **Lava Guard** place blocks while you look anywhere by sending a
   **silent rotation** to the server (the camera doesn't actually turn).
-- **Auto-restock tools** sends an **inventory swap** click with no inventory screen open.
+- **Auto-restock tools/blocks** send an **inventory swap** click with no inventory screen open.
 
 On a vanilla / no-anti-cheat server or in singleplayer these are accepted. Elsewhere
 they may get you flagged or banned — use them only where you accept that risk.
