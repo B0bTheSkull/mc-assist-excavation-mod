@@ -94,6 +94,11 @@ public class ExcavationHandler {
         LocalPlayer player = client.player;
         MultiPlayerGameMode im = client.gameMode;
 
+        // Forget placed-block protections from a previous world, and any that we've now walked out
+        // of reach of, before mining this tick.
+        PlacedBlockRegistry.onLevelMaybeChanged(client.level);
+        PlacedBlockRegistry.prune(player);
+
         // Lava guard: before mining anything, cap a nearby lava source if one is in range. When it
         // acts, suspend mining for this tick (and any in-progress break) so we seal lava first.
         if (Common.isLavaGuard() && LavaGuardHandler.tryGuard()) {
@@ -352,6 +357,9 @@ public class ExcavationHandler {
         if (requiredBlock != null && !state.is(requiredBlock)) {
             return false;
         }
+        if (PlacedBlockRegistry.isProtected(pos)) {
+            return false; // mirror tryMine: the preview must not show our own placements as targets
+        }
         return !isProtectedBlock(state);
     }
 
@@ -393,6 +401,12 @@ public class ExcavationHandler {
 
         // Block protection: never break protected blocks (containers/spawners) or blacklisted ids.
         if (isProtectedBlock(state)) {
+            return MINE_NONE;
+        }
+
+        // Never mine a block the mod itself placed (lava-guard cap / auto-bridge), or we'd churn
+        // it straight back open and burn through the player's blocks.
+        if (PlacedBlockRegistry.isProtected(pos)) {
             return MINE_NONE;
         }
 

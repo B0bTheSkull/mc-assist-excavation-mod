@@ -28,6 +28,7 @@ public class Common {
     private static Integer durabilityThreshold = 0;   // stop using a tool at/below this remaining durability (0=off)
     private static boolean protectEnchanted = true;   // never auto-switch away from Silk Touch / Fortune tools
     private static boolean restockTools = true;        // when a tool hits the durability guard, pull a fresh one from the inventory
+    private static boolean restockBlocks = true;       // pull building blocks (e.g. netherrack) from the inventory for lava-guard/auto-bridge
 
     // Block protection (blacklist)
     private static boolean protectBlockEntities = true;            // never break chests, spawners, etc.
@@ -143,6 +144,15 @@ public class Common {
 
     public static void setRestockTools(boolean restockTools) {
         Common.restockTools = restockTools;
+    }
+
+    // restockBlocks getter/setter
+    public static boolean isRestockBlocks() {
+        return restockBlocks;
+    }
+
+    public static void setRestockBlocks(boolean restockBlocks) {
+        Common.restockBlocks = restockBlocks;
     }
 
     // protectBlockEntities getter/setter

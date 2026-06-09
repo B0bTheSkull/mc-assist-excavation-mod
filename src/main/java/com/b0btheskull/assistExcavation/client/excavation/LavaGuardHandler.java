@@ -15,8 +15,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -58,9 +56,10 @@ public class LavaGuardHandler {
             return false;
         }
 
-        // Need a placeable full block to cap it. If we have none, we can't help — let mining run.
+        // Need a placeable full block to cap it (pulling one from the inventory if the hotbar's
+        // out). If we have none, we can't help — let mining run.
         Inventory inv = player.getInventory();
-        int blockSlot = findBlockSlot(inv, level, lava);
+        int blockSlot = BlockSupply.findOrRestockBlockSlot(player, level, lava);
         if (blockSlot < 0) {
             return false;
         }
@@ -105,9 +104,10 @@ public class LavaGuardHandler {
             inv.setSelectedSlot(blockSlot);
             player.connection.send(new ServerboundSetCarriedItemPacket(blockSlot));
         }
-        // 3) Place into the lava.
+        // 3) Place into the lava, and remember the cap so the excavator never mines it back open.
         gm.useItemOn(player, InteractionHand.MAIN_HAND, hit);
         player.swing(InteractionHand.MAIN_HAND);
+        PlacedBlockRegistry.record(lava);
         // 4) Restore the held slot.
         if (blockSlot != prevSlot) {
             inv.setSelectedSlot(prevSlot);
@@ -160,36 +160,6 @@ public class LavaGuardHandler {
             }
         }
         return best;
-    }
-
-    /**
-     * Find a placeable "full solid block" in the hotbar (slots 0..8) for capping {@code at}.
-     * Prefers a non-flammable block (one that lava can't ignite) so the cap doesn't immediately
-     * catch fire, falling back to a flammable full block only if that's all that's available.
-     * Returns the slot index, or -1 if none.
-     */
-    private static int findBlockSlot(Inventory inv, ClientLevel level, BlockPos at) {
-        int flammableFallback = -1;
-        for (int slot = 0; slot < Inventory.SELECTION_SIZE; slot++) {
-            ItemStack stack = inv.getItem(slot);
-            if (stack.isEmpty()) {
-                continue;
-            }
-            if (stack.getItem() instanceof BlockItem blockItem) {
-                BlockState state = blockItem.getBlock().defaultBlockState();
-                if (!state.isCollisionShapeFullBlock(level, at)) {
-                    continue;
-                }
-                if (state.ignitedByLava()) {
-                    if (flammableFallback < 0) {
-                        flammableFallback = slot; // keep as a last resort
-                    }
-                    continue;
-                }
-                return slot; // non-flammable full block — ideal for capping lava
-            }
-        }
-        return flammableFallback;
     }
 
     // Whether the player's real look direction is within a small tolerance of the placement angle.

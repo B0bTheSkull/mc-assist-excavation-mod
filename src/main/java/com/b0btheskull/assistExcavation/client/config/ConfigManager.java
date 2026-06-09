@@ -47,6 +47,7 @@ public final class ConfigManager {
         int durabilityThreshold = 0;
         boolean protectEnchanted = true;
         boolean restockTools = true;
+        boolean restockBlocks = true;
         boolean protectBlockEntities = true;
         List<String> blockBlacklist = new ArrayList<>();
         boolean serverSafe = false;
@@ -97,6 +98,7 @@ public final class ConfigManager {
         Common.setDurabilityThreshold(d.durabilityThreshold);
         Common.setProtectEnchanted(d.protectEnchanted);
         Common.setRestockTools(d.restockTools);
+        Common.setRestockBlocks(d.restockBlocks);
         Common.setProtectBlockEntities(d.protectBlockEntities);
         Common.setBlockBlacklist(d.blockBlacklist);
         Common.setServerSafe(d.serverSafe);
@@ -178,6 +180,7 @@ public final class ConfigManager {
         d.durabilityThreshold = Common.getDurabilityThreshold();
         d.protectEnchanted = Common.isProtectEnchanted();
         d.restockTools = Common.isRestockTools();
+        d.restockBlocks = Common.isRestockBlocks();
         d.protectBlockEntities = Common.isProtectBlockEntities();
         d.blockBlacklist = new ArrayList<>(Common.getBlockBlacklist());
         d.serverSafe = Common.isServerSafe();

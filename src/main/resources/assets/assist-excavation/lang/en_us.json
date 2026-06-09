@@ -27,6 +27,7 @@
   "screen.assist-excavation.config.durability.off": "Off",
   "screen.assist-excavation.config.protectEnchanted": "Protect Silk/Fortune: %s",
   "screen.assist-excavation.config.restockTools": "Auto-Restock Tools: %s",
+  "screen.assist-excavation.config.restockBlocks": "Auto-Restock Blocks: %s",
   "screen.assist-excavation.config.protectBlockEntities": "Protect Containers: %s",
   "screen.assist-excavation.config.serverSafe": "Server-Safe Mode: %s",
   "screen.assist-excavation.config.preview": "Preview Overlay: %s",

@@ -18,6 +18,7 @@
   "screen.assist-excavation.config.reach": "挖掘范围: %d",
   "screen.assist-excavation.config.autoTool": "自动切换工具: %s",
   "screen.assist-excavation.config.restockTools": "自动补充工具: %s",
+  "screen.assist-excavation.config.restockBlocks": "自动补充方块: %s",
   "screen.assist-excavation.config.fastBreak": "快速瞬破: %s",
   "screen.assist-excavation.config.autoBridge": "自动搭桥 (K): %s",
   "screen.assist-excavation.config.lavaGuard": "熔岩防护: %s",

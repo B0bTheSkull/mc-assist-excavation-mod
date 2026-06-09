@@ -42,6 +42,7 @@ public class AssistExcavationConfigScreen extends Screen {
     private int durabilityThreshold;
     private boolean protectEnchanted;
     private boolean restockTools;
+    private boolean restockBlocks;
     private boolean protectBlockEntities;
     private boolean serverSafe;
     private boolean previewOverlay;
@@ -75,6 +76,7 @@ public class AssistExcavationConfigScreen extends Screen {
         this.durabilityThreshold = Common.getDurabilityThreshold();
         this.protectEnchanted = Common.isProtectEnchanted();
         this.restockTools = Common.isRestockTools();
+        this.restockBlocks = Common.isRestockBlocks();
         this.protectBlockEntities = Common.isProtectBlockEntities();
         this.serverSafe = Common.isServerSafe();
         this.previewOverlay = Common.isPreviewOverlay();
@@ -152,6 +154,9 @@ public class AssistExcavationConfigScreen extends Screen {
                 y += pitch;
                 addRenderableWidget(toggle(x, y, colW, h, this::getRestockText,
                         () -> restockTools = !restockTools));
+                y += pitch;
+                addRenderableWidget(toggle(x, y, colW, h, this::getRestockBlocksText,
+                        () -> restockBlocks = !restockBlocks));
                 y += pitch;
                 addRenderableWidget(toggle(x, y, colW, h, this::getProtectEnchantedText,
                         () -> protectEnchanted = !protectEnchanted));
@@ -308,6 +313,7 @@ public class AssistExcavationConfigScreen extends Screen {
         Common.setDurabilityThreshold(durabilityThreshold);
         Common.setProtectEnchanted(protectEnchanted);
         Common.setRestockTools(restockTools);
+        Common.setRestockBlocks(restockBlocks);
         Common.setProtectBlockEntities(protectBlockEntities);
         Common.setServerSafe(serverSafe);
         Common.setPreviewOverlay(previewOverlay);
@@ -329,6 +335,7 @@ public class AssistExcavationConfigScreen extends Screen {
         durabilityThreshold = 0;
         protectEnchanted = true;
         restockTools = true;
+        restockBlocks = true;
         protectBlockEntities = true;
         serverSafe = false;
         previewOverlay = false;
@@ -381,6 +388,10 @@ public class AssistExcavationConfigScreen extends Screen {
 
     private MutableComponent getRestockText() {
         return onOff("screen.assist-excavation.config.restockTools", restockTools);
+    }
+
+    private MutableComponent getRestockBlocksText() {
+        return onOff("screen.assist-excavation.config.restockBlocks", restockBlocks);
     }
 
     private MutableComponent getProtectContainersText() {

@@ -12,12 +12,12 @@ import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import com.b0btheskull.assistExcavation.client.Common;
+import com.b0btheskull.assistExcavation.client.excavation.BlockSupply;
+import com.b0btheskull.assistExcavation.client.excavation.PlacedBlockRegistry;
 
 /**
  * Auto-bridge (scaffold): each tick, if the block under your feet is air, place a block there
@@ -55,9 +55,9 @@ public class BridgeHandler {
             return;
         }
 
-        // Find a placeable solid block in the hotbar.
+        // Find a placeable solid block in the hotbar (pulling one from the inventory if it's out).
         Inventory inv = player.getInventory();
-        int blockSlot = findBlockSlot(inv, level, target);
+        int blockSlot = BlockSupply.findOrRestockBlockSlot(player, level, target);
         if (blockSlot < 0) {
             return; // no usable building blocks — can't help, you fall as normal
         }
@@ -117,9 +117,10 @@ public class BridgeHandler {
             inv.setSelectedSlot(blockSlot);
             player.connection.send(new ServerboundSetCarriedItemPacket(blockSlot));
         }
-        // 3) Place.
+        // 3) Place, and remember it so the excavator doesn't mine the bridge out from under you.
         gm.useItemOn(player, InteractionHand.MAIN_HAND, hit);
         player.swing(InteractionHand.MAIN_HAND);
+        PlacedBlockRegistry.record(target);
         // 4) Restore the held slot.
         if (blockSlot != prevSlot) {
             inv.setSelectedSlot(prevSlot);
@@ -137,25 +138,5 @@ public class BridgeHandler {
         float dy = Math.abs(net.minecraft.util.Mth.degreesDifference(realYaw, wantYaw));
         float dp = Math.abs(net.minecraft.util.Mth.degreesDifference(realPitch, wantPitch));
         return dy <= 15.0f && dp <= 15.0f;
-    }
-
-    /**
-     * Find the first placeable "full solid block" in the hotbar (slots 0..8).
-     * Returns the slot index, or -1 if none.
-     */
-    private static int findBlockSlot(Inventory inv, ClientLevel level, BlockPos at) {
-        for (int slot = 0; slot < Inventory.SELECTION_SIZE; slot++) {
-            ItemStack stack = inv.getItem(slot);
-            if (stack.isEmpty()) {
-                continue;
-            }
-            if (stack.getItem() instanceof BlockItem blockItem) {
-                BlockState state = blockItem.getBlock().defaultBlockState();
-                if (state.isCollisionShapeFullBlock(level, at)) {
-                    return slot;
-                }
-            }
-        }
-        return -1;
     }
 }
